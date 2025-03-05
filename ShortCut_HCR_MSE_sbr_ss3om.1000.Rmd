@@ -436,7 +436,14 @@ plotAdvice(stkr)
 ```
 
 ```{r}
-save(stk,stka,stkr,refpts,sr,sra,spars,file="rdata/om.ss3ref.sbr.rdata") 
+save(stk,
+     stka,
+     stkr,
+     refpts,
+     sr,
+     sra,
+     spars,
+     file="rdata/om.ss3ref.sbr.rdata") 
 ```
 
 # Set up short-cut MSE
@@ -478,9 +485,13 @@ stki = propagate(stka,it)
 Generate recruitment 
 
 ```{r}
-srdevs <- rlnormar1(n=it,sdlog=spars["sigmaR"], rho=spars["rho"], years=seq(dy, fy))
+srdevs <- rlnormar1(n=it,
+                    sdlog=spars["sigmaR"],
+                    rho=spars["rho"], 
+                    years=seq(dy, fy))
 # Sex-structured
-if (dims(stki)$unit == 2) srdevs  <- expand(srdevs , unit = c("F", "M"))
+if (dims(stki)$unit == 2) srdevs  <- expand(srdevs ,
+                                            unit = c("F", "M"))
 
 ```
 
@@ -488,8 +499,11 @@ if (dims(stki)$unit == 2) srdevs  <- expand(srdevs , unit = c("F", "M"))
 Now construct the `FLom` object from the `mse` package by passing on `FLStock`,`refpts`, `sr` and the method used for foward projections.
 
 ```{r}
-om <- FLom(stock=stki, refpts=refpts, 
-           sr=sra, projection=mseCtrl(method=fwd.om),deviances=srdevs)
+om <- FLom(stock=stki,
+           refpts=refpts, 
+           sr=sra,
+           projection=mseCtrl(method=fwd.om),
+           deviances=srdevs)
 
 class(om)
 ```
@@ -500,9 +514,6 @@ Next add the structure for the future years: average of last 3 years
 om <- fwdWindow(om, end=fy)
 
 ```
-
-
-
 
 Next, a so called observation error is constructed. In the case of the short-cut MSE, it simply holds the "perfect" stock information. For a full MSE with inbuilt estimation model  it would also generate the observations with errors, such a catch-at-age and survey numbers at age for SAM or a4a, or biomass surveys indices and catches for SPicT or JABBA.  
 
@@ -516,12 +527,13 @@ oem <- FLoem(
 However, there is increasing realisation that the assessment estimates are imperfect. Therefore, ICES has implemented procedures to add uncertainty about the key quantities $F$ and $SSB$, where the error on $F$ is specified by a the random error term $Fcv$ and a first order autocorrelation parameter $Fphi$ and the precision of $SSB$ can specified by $SSBcv$ 
 
 
-
-
 Short-cut deviations
 
 ```{r}
-sdevs <- shortcut_devs(om, Fcv=spars["Fcv"], Fphi=0.432, SSBcv=spars["SSBcv"])
+sdevs <- shortcut_devs(om, 
+                       Fcv=spars["Fcv"], 
+                       Fphi=0.432, 
+                       SSBcv=spars["SSBcv"])
 
 ```
 
@@ -534,7 +546,11 @@ iem <- FLiem(method=noise.iem,
 
 
 ```{r,eval=FALSE}
-save(om, oem,sdevs,iem, file="rdata/flom.sbr.rda")
+save(om, 
+     oem,
+     sdevs,
+     iem,
+     file="rdata/flom.sbr.rda")
 ```
 
 ```{r,echo=FALSE}
@@ -551,8 +567,6 @@ This can be effectively implemented ICES advice rule hockey-stick by setting the
 Adjusted mse controls for sex-structured stocks
 
 ```{r}
-
-
 shortcut.sa2 <- function(stk, idx, SSBdevs=unitSums(ssb(stk)) %=% 1, args, tracking, ...) {
   # DIMS
   y0 <- args$y0
@@ -737,7 +751,11 @@ Note that the default setting assumes 1 year lag between data (reference) year a
 
 
 ```{r,echo=FALSE}
-mseargs <- list(iy=dy, fy=fy, data_lag=1, management_lag=1, frq=1)
+mseargs <- list(iy=dy,
+                fy=fy, 
+                data_lag=1, 
+                management_lag=1, 
+                frq=1)
 
 load(file="rdata/mps.ftune.sbr1000.rdata",verbose=T)
 
@@ -747,10 +765,18 @@ mp.fixexFmsy = stks$Fmsy.OM
 
 
 ```{r,eval=FALSE,warning=FALSE}
-mseargs <- list(iy=dy, fy=fy, data_lag=1, management_lag=1, frq=1)
+mseargs <- list(iy=dy,
+                fy=fy, 
+                data_lag=1, 
+                management_lag=1, 
+                frq=1)
 
 system.time(
-run <- mp(om, oem=oem, ctrl=arule, args=mseargs,verbose=T)
+run <- mp(om, 
+          oem=oem, 
+          ctrl=arule, 
+          args=mseargs,
+          verbose=T)
 )
 
 mp.fixexFmsy = run@om@stock
@@ -764,17 +790,23 @@ mp.fixexFmsy = run@om@stock
 stk.fmsy = FLStocks(stock=window(om@stock,end=dy),
               fixedFmsy=mp.fixexFmsy)
 
-plot(stk.fmsy)+facet_wrap(~qname,scales="free")+
+plot(stk.fmsy)+
+  facet_wrap(~qname,
+             scales="free")+
   theme_bw()+
-   geom_vline(xintercept = c(dy),linetype=2,col=1)+
- geom_vline(xintercept = c(fy),linetype=2,col=4)
+   geom_vline(xintercept = c(dy),
+              linetype=2,col=1)+
+  geom_vline(xintercept = c(fy),
+             linetype=2,col=4)
 
 ```
 
 The `run` can also be appended to the `om` to make a single `FLStockR` object with reference points
 
 ```{r}
-runR = FLStockR(append(window(om@stock,end=dy),mp.fixexFmsy))
+runR = FLStockR(append(window(om@stock,
+                              end=dy),
+                       mp.fixexFmsy))
 runR@refpts=refpts
 ```
 
@@ -785,13 +817,15 @@ It can be seen that despite "perfect" knowledge of the "true" $F_{MSY}$, and fis
 ```{r, fig.height=7,fig.width=9,warning=FALSE,message=FALSE, fig.cap = paste0("Stock Status under a fixed $F_{tgt}$ short-cut MSE rule")}
 thin = seq(1,it,5)
 plotAdvice(iter(runR,thin))+
-     geom_vline(xintercept = c(dy),linetype=2,col=1)+
-    geom_vline(xintercept = c(fy),linetype=2,col=4)+
+     geom_vline(xintercept = c(dy),
+                linetype=2,col=1)+
+    geom_vline(xintercept = c(fy),
+               linetype=2,col=4)+
   scale_x_continuous(breaks=seq(1970,3000,5))+
-  theme(axis.text.x = element_text(size=8, angle=90,vjust=0.5))
-
-  
-
+  theme_bw()+
+  theme(axis.text.x = element_text(size=8,
+                                   angle=90,
+                                   vjust=0.5))
 ```
 
 Even relatively simplified short-cut MSE frameworks provide a powerful to explore alternative HCRs to achieve better trade-off between risks and yield. 
@@ -801,7 +835,18 @@ Here, the convential hockey-stick control rule is explored with different ratios
 
 ```{r , fig.height=5,fig.width=8,warning=FALSE,message=FALSE, fig.cap = paste0("Advice Rule from EQSIM")}
 
- plotGFCM(fadv = Feq,btrigger =Btri.eq,bthr = -1,ftgt = Feq,btgt=df$Btgt[2],blim=an(refpts["Blim"]),fmin=0,bclose=0,kobe  =FALSE,text=F,rel=F,xmax=2.5)
+ plotGFCM(fadv = Feq,
+          btrigger =Btri.eq,
+          bthr = -1,
+          ftgt = Feq,
+          btgt=df$Btgt[2],
+          blim=an(refpts["Blim"]),
+          fmin=0,
+          bclose=0,
+          kobe  =FALSE,
+          text=F,
+          rel=F,
+          xmax=2.5)
 ```
 
 
@@ -812,10 +857,22 @@ Btgt = c(df$Btgt)
 Btri = c(df$Btrigger)
 
 hcrs= Map(function(x,y,z){
-p  = plotGFCM(fadv = x,btrigger =y,ftgt = x,btgt=z,blim=an(refpts["Blim"]),fmin=0,bclose=0,kobe  =FALSE,text=F,rel=F)
+p  = plotGFCM(fadv = x,
+              btrigger =y,
+              ftgt = x,
+              btgt=z,
+              blim=an(refpts["Blim"]),
+              fmin=0,
+              bclose=0,
+              kobe  =FALSE,
+              text=F,
+              rel=F)
 p = p
 return(p)
-},x=Fadv,y=Btri,z=Btgt)
+},
+x=Fadv,
+y=Btri,
+z=Btgt)
 # plot ggplot list
 ggarrange(plotlist=hcrs,nrow=6,ncol=4)
 
@@ -839,9 +896,11 @@ save(om,oem,arule,hcrs,df,mseargs,file="rdata/inpMP.sbr.1000.rdata")
 These changes in parameters can simply be passed on to the existing `arule` to run the variations with `mps`.  
 
 ```{r,eval=FALSE,warning=FALSE}
-runs <- mps(om, oem=oem, ctrl=arule, args=mseargs,
-  hcr=hcrs)
-
+runs <- mps(om, 
+            oem=oem,
+            ctrl=arule, 
+            args=mseargs,
+            hcr=hcrs)
 ```
 
 Note the this was run on a linux cluster in parallel
@@ -850,7 +909,8 @@ Note the this was run on a linux cluster in parallel
 
 library(doParallel)
 library(FLRef)
-load("~/openMSE/SCsexseas/rdata/inpMP.sbr.1000.rdata",verbose=T)
+load("rdata/inpMP.sbr.1000.rdata",
+     verbose=T)
 length(hcrs$target)
 # Run in batches
 
