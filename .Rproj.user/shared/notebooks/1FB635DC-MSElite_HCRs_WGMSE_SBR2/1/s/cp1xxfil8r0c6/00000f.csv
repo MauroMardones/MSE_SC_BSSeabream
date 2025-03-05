@@ -1,0 +1,4 @@
+"0","load(""rdata/om.ss3ref.rdata"",verbose=T)"
+"2","Warning: cannot open compressed file 'rdata/om.ss3ref.rdata', probable reason 'No such file or directory'"
+"2","Error in readChar(con, 5L, useBytes = TRUE) : cannot open the connection
+"

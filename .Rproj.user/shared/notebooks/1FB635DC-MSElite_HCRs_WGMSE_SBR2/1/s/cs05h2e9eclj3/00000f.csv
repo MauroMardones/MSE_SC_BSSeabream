@@ -1,0 +1,2 @@
+"0","knitr::opts_chunk$set(collapse = TRUE, comment = ""  "" ,fig.align = 'center', cache=FALSE,tidy.opts=list(width.cutoff=55), tidy=TRUE)"
+"0",""

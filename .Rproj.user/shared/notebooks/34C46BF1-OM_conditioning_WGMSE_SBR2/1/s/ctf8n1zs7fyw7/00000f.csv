@@ -1,0 +1,6 @@
+"2","r error 4 (Error in eval(ele) : object 'stk' not found
+)"
+"0","plotbioyr(stka)+"
+"0","  ggtitle(paste0(stk@name))"
+"2","Error in plotbioyr(stka) : could not find function ""plotbioyr""
+"
