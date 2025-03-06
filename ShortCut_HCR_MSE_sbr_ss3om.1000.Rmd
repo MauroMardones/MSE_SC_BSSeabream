@@ -32,12 +32,13 @@ knit_hooks$set(output = function(x, options) {
 
 
 ```{r, echo = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "  " ,fig.align = 'center', cache=FALSE,tidy.opts=list(width.cutoff=55), tidy=TRUE)
-
+knitr::opts_chunk$set(collapse = TRUE, 
+                      comment = "  " ,
+                      fig.align = 'center',
+                      cache=FALSE,
+                      tidy.opts=list(width.cutoff=55), 
+                      tidy=TRUE)
 ```
-
-
-
 
 Load packages
 
@@ -52,8 +53,9 @@ library(FLRef)
 library(ggpubr)
 library(mseviz)
 library(r4ss)
+library(doParallel)
+library(here)
 ```
-
 
 # Short-Cut MSE for Harvest Control Rule (HCR) 
 
@@ -96,8 +98,8 @@ In the following, the area outside is evaluated first.
 
 
 
-```{r}
-dir01 <- "~/IEO/WGMSE_GFCM_2025/MSE/Basecase_TVsel2018_Polyonly_h06_Mat5"
+```{r, eval=FALSE}
+dir01 <- here("Basecase_TVsel2018_Polyonly_h06_Mat5")
 run = "sbr.8c9a"
 stk = window(ss3om::readFLSss3(dir01))
 stk = simplify(stk)
@@ -108,14 +110,14 @@ sr = ss3om::readFLSRss3(dir01,run)
 stk@name = run
 stk@desc = "2024, ICES, SS3"
 out = ss3om::readOutputss3(dir01)
+
 ```
 
-or 
-
-```{r,echo=F}
-
+```{r, echo=F}
 run = "sbr.8c9a"
-load(file=file.path("rdata",paste0(run,".rdata")),verbose = T)
+load(file=file.path("rdata",
+                    paste0(run,".rdata")),
+     verbose = T)
 stka = stk
 ```
 
@@ -140,7 +142,8 @@ sr1 = srrTMB(as.FLSR(stka,
 
 ```{r , message=FALSE,warning=FALSE,fig.width=9,fig.height=7, fig.cap = paste0("Comparison of stock stock-recruitment function from ss3 and retuned single-sex with FLSRTMB ") }
 
-plotsrs(FLSRs(ss3=sr,sr=sr1))
+plotsrs(FLSRs(ss3=sr,
+              sr=sr1))
 
 ```
 Check that the fbar range is consistent with `ss.starter` input.
@@ -180,7 +183,7 @@ plot(stk)+
 
 plotdyn(stk)+
   theme_bw()+
-  scale_color_viridis_d()
+  scale_color_viridis_d(option="G")
 ```
 
 \newpage 
@@ -188,7 +191,8 @@ plotdyn(stk)+
 ```{r fig1.1.3, fig.height=6, fig.cap = paste0("Stock biology trajectories at age")}
 
 plotbioyr(stk)+
-  ggtitle(paste0(stk@name))
+  ggtitle(paste0(stk@name))+
+  scale_color_viridis_d(option="G")
 
 ```
 
@@ -197,7 +201,8 @@ plotbioyr(stk)+
 ```{r fig1.1.4, fig.height=6, fig.cap = paste0("Annual stock quanties at age")}
 
 plotbioage(stk)+
-  theme(legend.position = "none")
+  theme(legend.position = "none")+
+  scale_color_viridis_d(option="G")
 ```
 
 
@@ -251,11 +256,13 @@ if (dims(stk)$unit == 2) recs <- expand(recs, unit = c("F", "M"))
 if (dims(stka)$unit == 2)
 yrs = an(dimnames(stka)$year)
 testC = fwd(stka,sr=recs[,ac(yrs[-1])],
-  control=fwdControl(year=yrs[-1], value=(unitSums(catch(stka)[, ac(yrs[-1])])),
+  control=fwdControl(year=yrs[-1], 
+                     value=(unitSums(catch(stka)[, ac(yrs[-1])])),
   quant="catch"))
 
 testF = fwd(stka, sr=recs[,ac(yrs[-1])],
-  control=fwdControl(year=yrs[-1], value=unitMeans(fbar(stka)[, ac(yrs[-1])]),
+  control=fwdControl(year=yrs[-1], 
+                     value=unitMeans(fbar(stka)[, ac(yrs[-1])]),
   quant="fbar"))
 
 
@@ -355,14 +362,19 @@ Ftgt
 ```
 
 ```{r,eval=F}
-Bftgt = fwdB4F(stka,sra,Fs=Ftgt,nfy=200)
+Bftgt = fwdB4F(stka,
+               sra,
+               Fs=Ftgt,
+               nfy=200)
 
 Bftgt
-
 ```
 
-```{r,echo=FALSE}
-save(Fx,Ftgt,Bftgt,file="rdata/ftune.sbr.rdata")
+```{r, eval=FALSE, echo=FALSE}
+save(Fx,
+     Ftgt,
+     Bftgt,
+     file="rdata/ftune.sbr.rdata")
 ```
 
 ```{r,echo=F}
@@ -435,7 +447,7 @@ spars = FLPar(s=s,
 plotAdvice(stkr)
 ```
 
-```{r}
+```{r eval=FALSE}
 save(stk,
      stka,
      stkr,
@@ -479,7 +491,8 @@ it <- 1000
 Subset the 1000 simulated stock iterations to the first 100
 
 ```{r}
-stki = propagate(stka,it)
+stki = propagate(stka,
+                 it)
 ```
 
 Generate recruitment 
@@ -511,13 +524,13 @@ class(om)
 Next add the structure for the future years: average of last 3 years
 
 ```{r}
-om <- fwdWindow(om, end=fy)
-
+om <- fwdWindow(om, 
+                end=fy)
 ```
 
 Next, a so called observation error is constructed. In the case of the short-cut MSE, it simply holds the "perfect" stock information. For a full MSE with inbuilt estimation model  it would also generate the observations with errors, such a catch-at-age and survey numbers at age for SAM or a4a, or biomass surveys indices and catches for SPicT or JABBA.  
 
-```{r}
+```{r tidy=FALSE}
 oem <- FLoem(
   observations=list(stk=stock(om)),
   method=perfect.oem
@@ -529,7 +542,7 @@ However, there is increasing realisation that the assessment estimates are imper
 
 Short-cut deviations
 
-```{r}
+```{r tidy=FALSE}
 sdevs <- shortcut_devs(om, 
                        Fcv=spars["Fcv"], 
                        Fphi=0.432, 
@@ -567,7 +580,12 @@ This can be effectively implemented ICES advice rule hockey-stick by setting the
 Adjusted mse controls for sex-structured stocks
 
 ```{r}
-shortcut.sa2 <- function(stk, idx, SSBdevs=unitSums(ssb(stk)) %=% 1, args, tracking, ...) {
+shortcut.sa2 <- function(stk, 
+                         idx, 
+                         SSBdevs=unitSums(ssb(stk)) %=% 1, 
+                         args, 
+                         tracking, 
+                         ...) {
   # DIMS
   y0 <- args$y0
   dy <- args$dy
@@ -580,7 +598,9 @@ shortcut.sa2 <- function(stk, idx, SSBdevs=unitSums(ssb(stk)) %=% 1, args, track
   ind <- FLQuants(
     # SSB + devs 
     #><> add unitSums
-    ssb=unitSums(ssb(stk)) * window(SSBdevs, start=y0, end=dy))
+    ssb=unitSums(ssb(stk)) * window(SSBdevs, 
+                                    start=y0, 
+                                    end=dy))
 
   track(tracking, "conv.est", ac(ay)) <- 1
 
@@ -589,8 +609,16 @@ shortcut.sa2 <- function(stk, idx, SSBdevs=unitSums(ssb(stk)) %=% 1, args, track
 
 
 
-tac.is2 <- function(stk, ctrl, args, output="catch", recyrs=-2,
-  Fdevs=unitMeans(fbar(fut)) %=% 1, dtaclow=NA, dtacupp=NA, fmin=0, reuse=TRUE,
+tac.is2 <- function(stk, 
+                    ctrl,
+                    args, 
+                    output="catch",
+                    recyrs=-2,
+  Fdevs=unitMeans(fbar(fut)) %=% 1, 
+  dtaclow=NA, 
+  dtacupp=NA, 
+  fmin=0, 
+  reuse=TRUE,
   initac=metrics(stk, output)[, ac(iy - 1)], tracking) { 
   # EXTRACT args
   spread(args)
@@ -750,21 +778,7 @@ Note that the default setting assumes 1 year lag between data (reference) year a
 
 
 
-```{r,echo=FALSE}
-mseargs <- list(iy=dy,
-                fy=fy, 
-                data_lag=1, 
-                management_lag=1, 
-                frq=1)
-
-load(file="rdata/mps.ftune.sbr1000.rdata",verbose=T)
-
-mp.fixexFmsy = stks$Fmsy.OM
-
-```
-
-
-```{r,eval=FALSE,warning=FALSE}
+```{r, eval=F, warning=FALSE}
 mseargs <- list(iy=dy,
                 fy=fy, 
                 data_lag=1, 
@@ -781,8 +795,19 @@ run <- mp(om,
 
 mp.fixexFmsy = run@om@stock
 
+save(mp.fixexFmsy,
+     file="rdata/mps.ftune.sbr1000_MM.rdata")
 ```
 
+load outputs from  `run()` function
+
+```{r, echo=FALSE}
+load(file="rdata/mps.ftune.sbr1000_MM.rdata",
+     verbose=T)
+
+#mp.fixexFmsy = stks$Fmsy.OM
+#mp.fixexFmsy = run@om@stock
+```
 
 ```{r fig9, fig.height=7,fig.width=9,warning=FALSE,message=FALSE, fig.cap = paste0("Initial OM and the MSE forecast horizon under a fixed $F_{tgt}$ rule")}
 
@@ -874,7 +899,9 @@ x=Fadv,
 y=Btri,
 z=Btgt)
 # plot ggplot list
-ggarrange(plotlist=hcrs,nrow=6,ncol=4)
+ggarrange(plotlist=hcrs,
+          nrow=6,
+          ncol=4)
 
 ```
 
@@ -887,8 +914,17 @@ hcrs =combinations(target=Fadv,
                    trigger=0)
 hcrs$trigger = Btri # Overwrite
 hcrs
+```
 
-save(om,oem,arule,hcrs,df,mseargs,file="rdata/inpMP.sbr.1000.rdata")
+
+```{r eval=F}
+save(om,
+     oem,
+     arule,
+     hcrs,
+     df,
+     mseargs,
+     file="rdata/inpMP.sbr.1000.rdata")
 ```
 
 
@@ -906,28 +942,27 @@ runs <- mps(om,
 Note the this was run on a linux cluster in parallel
 
 ```{r,eval=F}
-
 library(doParallel)
-library(FLRef)
 load("rdata/inpMP.sbr.1000.rdata",
      verbose=T)
 length(hcrs$target)
 # Run in batches
-
 ni = length(hcrs$target)
 cl = ni
-
 registerDoParallel(cl)
 start = Sys.time()
-
 runs <- foreach(i = seq(ni)) %dopar% {
-  
   # set stock index
   hcr = arule
   hcr$hcr@args$target = hcrs$target[i]
   hcr$hcr@args$trigger = hcrs$trigger[i]
   
-  runi <- mp(om, oem=oem, ctrl=hcr , args=mseargs,verbose=T,parallel = FALSE)
+  runi <- mp(om, 
+             oem=oem, 
+             ctrl=hcr, 
+             args=mseargs,
+             verbose=T,
+             parallel = FALSE)
   
   return(runi)
 } # end of loop 
@@ -935,13 +970,11 @@ end = Sys.time()
 time = end-start
 time
 
-
-
-
 nfs = length(df$Tune[-1])
-tri = c(rep(".Btri.eq",each=nfs))
-scenarios = c("Fmsy.OM",paste0(rep(c(df$Tune[-1]),1),tri))
-
+tri = c(rep(".Btri.eq",
+            each=nfs))
+scenarios = c("Fmsy.OM",
+              paste0(rep(c(df$Tune[-1]),1),tri))
 names(runs) = scenarios
 
 stks = FLStocks(lapply(runs,function(x){
@@ -956,11 +989,8 @@ stkm = FLStocks(lapply(stks,function(x){
 }))
 
 plotAdvice(stkm)
-
-save(stks ,file=paste0("rdata/mps.ftune.sbr1000.rdata"))
-
-
-
+save(stks,
+     file=paste0("rdata/mps.ftune.sbr1000.rdata"))
 ```
 
 
@@ -977,8 +1007,6 @@ names(runs) = scenarios
 
 Save 
 
-
-
 An easy way of basic plotting is to extract the `FLStocks` from the list of MSE runs with `lapply`
 
 ```{r,eval=F}
@@ -994,7 +1022,7 @@ stks = FLStocks(lapply(runs,function(x){
 
 
 
-```{r , fig.height=7,fig.width=9,warning=FALSE,message=FALSE, fig.cap = paste0("Initial OM and the MSE forecast horizon under a fixed $F_{tgt}$ rule and 6 HCR hockey-stick scenarios")}
+```{r, eval=FALSE, fig.height=7,fig.width=9,warning=FALSE,message=FALSE, fig.cap = paste0("Initial OM and the MSE forecast horizon under a fixed $F_{tgt}$ rule and 6 HCR hockey-stick scenarios")}
 
 ref = FLStockR(window(stock(om),end=dy))
 ref@refpts = refpts
@@ -1003,22 +1031,32 @@ pstks = FLStocks(c(FLStocks(stock=window(ref,end=dy)),
 
 plotAdvice(iter(pstks,thin))+facet_wrap(~qname,scales="free")+
   theme_bw()+
-  scale_color_manual(values=c("black",ss3col(length(pstks))[-1]))+
-  scale_fill_manual(values=c("darkgrey",ss3col(length(pstks))[-1]))+
-  geom_vline(xintercept = c(dy),linetype=2,col=1)+
-    geom_vline(xintercept = c(fy),linetype=2,col=4)+
+  scale_color_manual(values=c("black",
+                              ss3col(length(pstks))[-1]))+
+  scale_fill_manual(values=c("darkgrey",
+                             ss3col(length(pstks))[-1]))+
+  geom_vline(xintercept = c(dy),
+             linetype=2,col=1)+
+    geom_vline(xintercept = c(fy),
+               linetype=2,
+               col=4)+
   scale_x_continuous(breaks=seq(1900,3000,5))+
-  theme(axis.text.x = element_text(size=8, angle=90,vjust=0.5))
+  theme(axis.text.x = element_text(size=8, 
+                                   angle=90,
+                                   vjust=0.5))
 
 ```
 
 
 ```{r,eval=FALSE}
-save(pstks,mseargs, file="rdata/shortcut_stks.sbr.rda", compress="xz")
+save(pstks,
+     mseargs,
+     file="rdata/shortcut_stks.sbr.rda",
+     compress="xz")
 ```
 
 
-```{r, fig.height=7,fig.width=9,warning=FALSE,message=FALSE, fig.cap = paste0("Median MSE forecast horizon under a fixed $F_{tgt}$ rule and 6 HCR scenarios")}
+```{r, eval=FALSE, fig.height=7,fig.width=9,warning=FALSE,message=FALSE, fig.cap = paste0("Median MSE forecast horizon under a fixed $F_{tgt}$ rule and 6 HCR scenarios")}
 
 medstks = FLStocks(lapply(stks,function(x){
   stockMedians(x)
@@ -1054,8 +1092,6 @@ metrics <- list(SB = function(x)unitSums(ssb(x)),
 Define performance statistics - ordered alphabetically
 
 ```{r}
-
-
 stats <- list(
   a.medianFmsy= list(~yearMedians(F/Fmsy), name="F/Fmsy",
     desc="Median annual F/Fmsy"),
@@ -1071,8 +1107,6 @@ stats <- list(
     name="B>80Bmsy", desc="Probability that SSB > 80% x Bmsy")
 
 )
-
-  
 ```  
 
 
@@ -1082,7 +1116,7 @@ stats <- list(
 
 Replace deterministic MSY with MSE MSY from a run with the true, fixed $F_{MSY}$ in the  reference points
 
-```{r}
+```{r eval=FALSE}
 refpts.perf = refpts
 refpts.perf = rbind(refpts.perf,
                     FLPar(MSY= median(unitSums(catch(stks$Fmsy.OM[,ac((fy-24):fy)])))))
@@ -1092,8 +1126,12 @@ refpts.perf = rbind(refpts.perf,
 
 Compute performance metrics
 
-```{r,warning=F,message=F}
-perf <- performance(stks,refpts=refpts.perf,metrics=metrics, statistics=stats, years=list((fy-25):fy))
+```{r, eval=FALSE, warning=F,message=F}
+perf <- performance(stks,
+                    refpts=refpts.perf,
+                    metrics=metrics, 
+                    statistics=stats, 
+                    years=list((fy-25):fy))
 
 ```
 
@@ -1102,7 +1140,7 @@ perf <- performance(stks,refpts=refpts.perf,metrics=metrics, statistics=stats, y
 ## PLOT performance
 
 
-```{r, fig.height=9,fig.width=8,warning=FALSE,message=FALSE, fig.cap = paste0("Performance: Long-term performance evaluation")}
+```{r, eval=FALSE, fig.height=9,fig.width=8,warning=FALSE,message=FALSE, fig.cap = paste0("Performance: Long-term performance evaluation")}
 
 ncol = length(unique(perf$mp)) 
 pbp = plotBPs(perf,
@@ -1126,7 +1164,7 @@ pbp
 
 
 
-```{r,echo=F,message=F,warning=F}
+```{r, eval=FALSE, echo=F,message=F,warning=F}
 dir.create("perftabs",showWarnings = F)
 
 pf = perf[perf$statistic%in%statistic,]
@@ -1155,7 +1193,7 @@ knitr::kable(tab.pf,"pipe",
 
 ### MSE kobe plot
 
-```{r fig5, fig.height=8,fig.width=10, fig.cap = paste0("MSE kobe plot Advice rules"), warning=FALSE}
+```{r eval=FALSE, fig5, fig.height=8,fig.width=10, fig.cap = paste0("MSE kobe plot Advice rules"), warning=FALSE}
 
 kbcex =function(){theme(plot.title = element_text(size=10),
                         legend.key.size = unit(0.3, 'cm'), #change legend key size
